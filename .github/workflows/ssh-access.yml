@@ -1,0 +1,36 @@
+name: Enable SSH on Ubuntu Runner
+
+on: 
+  workflow_dispatch: # 手动触发工作流
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install SSH server
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssh-server
+          sudo systemctl enable ssh
+          sudo systemctl start ssh
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PUBLIC_KEY }}" > ~/.ssh/authorized_keys
+          chmod 600 ~/.ssh/authorized_keys
+          chmod 700 ~/.ssh
+          sudo sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+          sudo systemctl restart ssh
+
+      - name: Show runner IP
+        run: |
+          echo "Runner IP: $(curl -s ifconfig.me)"
+          echo "SSH command: ssh ubuntu@$(curl -s ifconfig.me)"
+
+      - name: Keep runner alive
+        run: |
+          sleep 14400 # 保持运行3小时，足够你连接
